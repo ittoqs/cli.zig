@@ -57,10 +57,10 @@ test "test processArgs with one extra argument" {
     defer output_buffer.deinit();
     const writer = output_buffer.writer();
 
-    const args = [_][]const u8{ "./cli-zig", "Alice" };
+    const args = [_][]const u8{ "./cli-zig", "Baco" };
 
     try processArgs(&args, writer);
 
-    const expected = "Halo, Alice! Selamat datang di Zig CLI.\n";
+    const expected = "Halo, Baco! Selamat datang di Zig CLI.\n";
     try std.testing.expectEqualStrings(expected, output_buffer.items);
 }
