@@ -29,6 +29,21 @@ pub fn main() !void {
 
     try processArgs(args, stdout);
     try bw.flush();
+
+    const stdin = std.io.getStdIn().reader();
+    var buffer: [1024]u8 = undefined;
+
+    while (true) {
+        try stdout.print("cli-zig> ", .{});
+        try bw.flush();
+
+        if (try stdin.readUntilDelimiterOrEof(&buffer, '\n')) |_| {
+            // Berhasil membaca satu baris input
+        } else {
+            // End of File (EOF)
+            break;
+        }
+    }
 }
 
 test "test processArgs with no extra arguments" {
