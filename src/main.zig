@@ -4,7 +4,21 @@ const executor = @import("executor.zig");
 const ui = @import("ui.zig");
 const env = @import("env.zig");
 
+fn sigintHandler(sig: i32) callconv(.C) void {
+    _ = sig;
+}
+
 pub fn main() !void {
+    // Setup SIGINT handler to catch Ctrl+C in the main REPL loop.
+    // We use a dummy handler instead of SIG_IGN so that child processes
+    // will have the signal behavior reset to default upon exec.
+    const act = std.posix.Sigaction{
+        .handler = .{ .handler = sigintHandler },
+        .mask = std.posix.empty_sigset,
+        .flags = 0,
+    };
+    try std.posix.sigaction(std.posix.SIG.INT, &act, null);
+
     // Menyiapkan allocator untuk membaca argumen
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -67,7 +81,14 @@ pub fn main() !void {
                         try stdout.print("\x1B[2J\x1B[H", .{});
                         try bw.flush();
                     } else {
-                        executor.executeCommand(arena_alloc, cmd_args.items) catch |err| {
+                        // Parse as pipeline
+                        const pipeline = parser.parsePipeline(arena_alloc, cmd_args.items) catch |err| {
+                            try stdout.print("Gagal parsing perintah: {any}\n", .{err});
+                            try bw.flush();
+                            continue;
+                        };
+
+                        executor.executePipeline(arena_alloc, pipeline) catch |err| {
                             try stdout.print("Gagal mengeksekusi perintah: {any}\n", .{err});
                             try bw.flush();
                         };
