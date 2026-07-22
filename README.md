@@ -1,4 +1,4 @@
-# cli.zig
+# zigman
 Konsol sederhana dengan ZIG, dirancang untuk menjadi aplikasi Command Line Interface (CLI).
 
 ## Persyaratan

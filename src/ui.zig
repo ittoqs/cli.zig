@@ -8,7 +8,7 @@ pub fn processArgs(args: []const []const u8, writer: anytype) !void {
         const path = args[1];
         try writer.print("Berhasil masuk ke direktori: {s}\n", .{path});
     } else {
-        try writer.print("Halo, Dunia!\nTip: Anda bisa menjalankan aplikasi ini dengan argumen path direktori, misalnya: ./cli-zig /home/user/project\n", .{});
+        try writer.print("Halo, Dunia!\nTip: Anda bisa menjalankan aplikasi ini dengan argumen path direktori, misalnya: ./zigman /home/user/project\n", .{});
     }
 }
 
@@ -21,11 +21,11 @@ test "test processArgs with no extra arguments" {
     defer output_buffer.deinit();
     const writer = output_buffer.writer();
 
-    const args = [_][]const u8{"./cli-zig"};
+    const args = [_][]const u8{"./zigman"};
 
     try processArgs(&args, writer);
 
-    const expected = "Halo, Dunia!\nTip: Anda bisa menjalankan aplikasi ini dengan argumen path direktori, misalnya: ./cli-zig /home/user/project\n";
+    const expected = "Halo, Dunia!\nTip: Anda bisa menjalankan aplikasi ini dengan argumen path direktori, misalnya: ./zigman /home/user/project\n";
     try std.testing.expectEqualStrings(expected, output_buffer.items);
 }
 
@@ -38,7 +38,7 @@ test "test processArgs with one extra argument" {
     defer output_buffer.deinit();
     const writer = output_buffer.writer();
 
-    const args = [_][]const u8{ "./cli-zig", "/home/user/project" };
+    const args = [_][]const u8{ "./zigman", "/home/user/project" };
 
     try processArgs(&args, writer);
 

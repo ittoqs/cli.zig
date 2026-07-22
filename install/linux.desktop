@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Open in Zig CLI
-Exec=/path/to/cli-zig %f
+Exec=/path/to/zigman %f
 Icon=utilities-terminal
 Terminal=true
 MimeType=inode/directory;

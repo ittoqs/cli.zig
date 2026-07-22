@@ -10,8 +10,8 @@ on run {input, parameters}
     tell application "Terminal"
         activate
         set p to POSIX path of item 1 of input
-        -- Ubah "/path/to/cli-zig" dengan lokasi ekseskutor cli-zig anda
-        do script "\"/path/to/cli-zig\" " & quoted form of p
+        -- Ubah "/path/to/zigman" dengan lokasi ekseskutor zigman anda
+        do script "\"/path/to/zigman\" " & quoted form of p
     end tell
     return input
 end run
