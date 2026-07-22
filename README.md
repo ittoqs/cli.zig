@@ -1,0 +1,2 @@
+# cli.zig
+Konsol sederhana
