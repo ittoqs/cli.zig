@@ -1,5 +1,37 @@
 const std = @import("std");
 
+pub const CommandIterator = struct {
+    input: []const u8,
+    index: usize = 0,
+
+    pub fn next(self: *@This()) ?[]const u8 {
+        // skip leading spaces
+        while (self.index < self.input.len and std.ascii.isWhitespace(self.input[self.index])) {
+            self.index += 1;
+        }
+        if (self.index >= self.input.len) return null;
+
+        if (self.input[self.index] == '"') {
+            self.index += 1; // skip opening quote
+            const start = self.index;
+            while (self.index < self.input.len and self.input[self.index] != '"') {
+                self.index += 1;
+            }
+            const token = self.input[start..self.index];
+            if (self.index < self.input.len and self.input[self.index] == '"') {
+                self.index += 1; // skip closing quote
+            }
+            return token;
+        } else {
+            const start = self.index;
+            while (self.index < self.input.len and !std.ascii.isWhitespace(self.input[self.index])) {
+                self.index += 1;
+            }
+            return self.input[start..self.index];
+        }
+    }
+};
+
 // Fungsi untuk memproses argumen dan mencetak output, ini diekstrak agar mudah dites
 pub fn processArgs(args: []const []const u8, writer: anytype) !void {
     // args[0] selalu path eksekusi dari program itu sendiri.
@@ -37,8 +69,14 @@ pub fn main() !void {
         try stdout.print("cli-zig> ", .{});
         try bw.flush();
 
-        if (try stdin.readUntilDelimiterOrEof(&buffer, '\n')) |_| {
+        if (try stdin.readUntilDelimiterOrEof(&buffer, '\n')) |input_line| {
             // Berhasil membaca satu baris input
+            const trimmed_input = std.mem.trimRight(u8, input_line, "\r");
+            var iter = CommandIterator{ .input = trimmed_input };
+            while (iter.next()) |token| {
+                try stdout.print("Token: '{s}'\n", .{token});
+            }
+            try bw.flush();
         } else {
             // End of File (EOF)
             break;
@@ -78,4 +116,14 @@ test "test processArgs with one extra argument" {
 
     const expected = "Halo, Baco! Selamat datang di Zig CLI.\n";
     try std.testing.expectEqualStrings(expected, output_buffer.items);
+}
+
+test "CommandIterator" {
+    const input = "hello world \"nama folder yang ada spasinya\" test";
+    var iter = CommandIterator{ .input = input };
+    try std.testing.expectEqualStrings("hello", iter.next().?);
+    try std.testing.expectEqualStrings("world", iter.next().?);
+    try std.testing.expectEqualStrings("nama folder yang ada spasinya", iter.next().?);
+    try std.testing.expectEqualStrings("test", iter.next().?);
+    try std.testing.expect(iter.next() == null);
 }
