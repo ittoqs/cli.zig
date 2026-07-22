@@ -1,10 +1,10 @@
 # cli.zig
-Konsol sederhana, dirancang untuk menjadi aplikasi Command Line Interface (CLI) multiplatform.
+Konsol sederhana dengan ZIG, dirancang untuk menjadi aplikasi Command Line Interface (CLI).
 
 ## Persyaratan
 - Zig (minimal v0.13.0)
 
-## Cara Kompilasi dan Menjalankan
+## Kompilasi dan Menjalankan
 
 Zig build system:
 
@@ -26,7 +26,7 @@ zig build test
 
 ## Cross-Compilation
 
-Untuk kompilasi.
+Untuk kompilasi lintas OS.
 
 ```bash
 # Kompilasi untuk Windows (x86_64)
