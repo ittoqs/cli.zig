@@ -2,11 +2,11 @@
 Konsol sederhana, dirancang untuk menjadi aplikasi Command Line Interface (CLI) multiplatform.
 
 ## Persyaratan
-- Zig (minimal v0.13.0 disarankan)
+- Zig (minimal v0.13.0)
 
 ## Cara Kompilasi dan Menjalankan
 
-Kamu bisa mengompilasi dan menjalankan program menggunakan Zig build system:
+Zig build system:
 
 ```bash
 # Untuk menjalankan langsung
@@ -26,7 +26,7 @@ zig build test
 
 ## Cross-Compilation
 
-Salah satu kekuatan Zig adalah dukungannya untuk kompilasi lintas platform secara mudah.
+Untuk kompilasi.
 
 ```bash
 # Kompilasi untuk Windows (x86_64)
