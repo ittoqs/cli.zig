@@ -1,0 +1,13 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\shell\Open in Zig CLI]
+@="Open in Zig CLI"
+
+[HKEY_CLASSES_ROOT\Directory\shell\Open in Zig CLI\command]
+@="\"C:\\path\\to\\cli-zig.exe\" \"%1\""
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\Open in Zig CLI]
+@="Open in Zig CLI"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\Open in Zig CLI\command]
+@="\"C:\\path\\to\\cli-zig.exe\" \"%V\""

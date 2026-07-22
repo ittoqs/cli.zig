@@ -33,7 +33,15 @@ pub fn main() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    try ui.processArgs(args, stdout);
+    if (args.len > 1) {
+        if (env.changeDirectory(args[1])) {
+            try ui.processArgs(args, stdout);
+        } else |err| {
+            try stdout.print("Gagal pindah ke direktori '{s}': {any}\n", .{args[1], err});
+        }
+    } else {
+        try ui.processArgs(args, stdout);
+    }
     try bw.flush();
 
     const stdin = std.io.getStdIn().reader();

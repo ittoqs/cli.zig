@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Open in Zig CLI
+Exec=/path/to/cli-zig %f
+Icon=utilities-terminal
+Terminal=true
+MimeType=inode/directory;
+Categories=Utility;TerminalEmulator;
