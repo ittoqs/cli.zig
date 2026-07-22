@@ -1,62 +1,8 @@
 const std = @import("std");
-
-pub const CommandIterator = struct {
-    input: []const u8,
-    index: usize = 0,
-
-    pub fn next(self: *@This()) ?[]const u8 {
-        // skip leading spaces
-        while (self.index < self.input.len and std.ascii.isWhitespace(self.input[self.index])) {
-            self.index += 1;
-        }
-        if (self.index >= self.input.len) return null;
-
-        if (self.input[self.index] == '"') {
-            self.index += 1; // skip opening quote
-            const start = self.index;
-            while (self.index < self.input.len and self.input[self.index] != '"') {
-                self.index += 1;
-            }
-            const token = self.input[start..self.index];
-            if (self.index < self.input.len and self.input[self.index] == '"') {
-                self.index += 1; // skip closing quote
-            }
-            return token;
-        } else {
-            const start = self.index;
-            while (self.index < self.input.len and !std.ascii.isWhitespace(self.input[self.index])) {
-                self.index += 1;
-            }
-            return self.input[start..self.index];
-        }
-    }
-};
-
-pub fn executeCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
-    if (args.len == 0) return;
-
-    var child = std.process.Child.init(args, allocator);
-    // Membaca Environment Variables (PATH) dari OS
-    child.expand_arg0 = .expand;
-    // Mengaitkan dengan PTY agar perintah interaktif dapat berjalan
-    child.stdin_behavior = .Inherit;
-    child.stdout_behavior = .Inherit;
-    child.stderr_behavior = .Inherit;
-
-    _ = try child.spawnAndWait();
-}
-
-// Fungsi untuk memproses argumen dan mencetak output, ini diekstrak agar mudah dites
-pub fn processArgs(args: []const []const u8, writer: anytype) !void {
-    // args[0] selalu path eksekusi dari program itu sendiri.
-    // Jika args.len > 1, berarti pengguna memberikan argumen tambahan.
-    if (args.len > 1) {
-        const name = args[1];
-        try writer.print("Halo, {s}! Selamat datang di Zig CLI.\n", .{name});
-    } else {
-        try writer.print("Halo, Dunia!\nTip: Anda bisa menjalankan aplikasi ini dengan argumen nama Anda, misalnya: ./cli-zig Baco\n", .{});
-    }
-}
+const parser = @import("parser.zig");
+const executor = @import("executor.zig");
+const ui = @import("ui.zig");
+const env = @import("env.zig");
 
 pub fn main() !void {
     // Menyiapkan allocator untuk membaca argumen
@@ -73,13 +19,21 @@ pub fn main() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    try processArgs(args, stdout);
+    try ui.processArgs(args, stdout);
     try bw.flush();
 
     const stdin = std.io.getStdIn().reader();
     var buffer: [1024]u8 = undefined;
 
+    // Arena Allocator untuk manajemen memori REPL
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const arena_alloc = arena.allocator();
+
     while (true) {
+        // Reset memori arena setiap siklus IO
+        _ = arena.reset(.retain_capacity);
+
         try stdout.print("cli-zig> ", .{});
         try bw.flush();
 
@@ -87,9 +41,9 @@ pub fn main() !void {
             // Berhasil membaca satu baris input
             const trimmed_input = std.mem.trimRight(u8, input_line, "\r");
             if (trimmed_input.len > 0) {
-                var iter = CommandIterator{ .input = trimmed_input };
-                var cmd_args = std.ArrayList([]const u8).init(allocator);
-                defer cmd_args.deinit();
+                var iter = parser.CommandIterator{ .input = trimmed_input };
+                var cmd_args = std.ArrayList([]const u8).init(arena_alloc);
+                // defer cmd_args.deinit(); // Tidak perlu defer karena memakai arena allocator yang di-reset per siklus
 
                 while (iter.next()) |token| {
                     try cmd_args.append(token);
@@ -99,7 +53,7 @@ pub fn main() !void {
                     const cmd = cmd_args.items[0];
                     if (std.mem.eql(u8, cmd, "cd")) {
                         if (cmd_args.items.len > 1) {
-                            std.posix.chdir(cmd_args.items[1]) catch |err| {
+                            env.changeDirectory(cmd_args.items[1]) catch |err| {
                                 try stdout.print("Gagal pindah direktori: {any}\n", .{err});
                                 try bw.flush();
                             };
@@ -113,7 +67,7 @@ pub fn main() !void {
                         try stdout.print("\x1B[2J\x1B[H", .{});
                         try bw.flush();
                     } else {
-                        executeCommand(allocator, cmd_args.items) catch |err| {
+                        executor.executeCommand(arena_alloc, cmd_args.items) catch |err| {
                             try stdout.print("Gagal mengeksekusi perintah: {any}\n", .{err});
                             try bw.flush();
                         };
@@ -127,46 +81,7 @@ pub fn main() !void {
     }
 }
 
-test "test processArgs with no extra arguments" {
-    var buffer: [1024]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&buffer);
-    const allocator = fba.allocator();
-
-    var output_buffer = std.ArrayList(u8).init(allocator);
-    defer output_buffer.deinit();
-    const writer = output_buffer.writer();
-
-    const args = [_][]const u8{"./cli-zig"};
-
-    try processArgs(&args, writer);
-
-    const expected = "Halo, Dunia!\nTip: Anda bisa menjalankan aplikasi ini dengan argumen nama Anda, misalnya: ./cli-zig Baco\n";
-    try std.testing.expectEqualStrings(expected, output_buffer.items);
-}
-
-test "test processArgs with one extra argument" {
-    var buffer: [1024]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&buffer);
-    const allocator = fba.allocator();
-
-    var output_buffer = std.ArrayList(u8).init(allocator);
-    defer output_buffer.deinit();
-    const writer = output_buffer.writer();
-
-    const args = [_][]const u8{ "./cli-zig", "Baco" };
-
-    try processArgs(&args, writer);
-
-    const expected = "Halo, Baco! Selamat datang di Zig CLI.\n";
-    try std.testing.expectEqualStrings(expected, output_buffer.items);
-}
-
-test "CommandIterator" {
-    const input = "hello world \"nama folder yang ada spasinya\" test";
-    var iter = CommandIterator{ .input = input };
-    try std.testing.expectEqualStrings("hello", iter.next().?);
-    try std.testing.expectEqualStrings("world", iter.next().?);
-    try std.testing.expectEqualStrings("nama folder yang ada spasinya", iter.next().?);
-    try std.testing.expectEqualStrings("test", iter.next().?);
-    try std.testing.expect(iter.next() == null);
+comptime {
+    _ = @import("parser.zig");
+    _ = @import("ui.zig");
 }
