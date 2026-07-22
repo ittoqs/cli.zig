@@ -96,10 +96,28 @@ pub fn main() !void {
                 }
 
                 if (cmd_args.items.len > 0) {
-                    executeCommand(allocator, cmd_args.items) catch |err| {
-                        try stdout.print("Gagal mengeksekusi perintah: {any}\n", .{err});
+                    const cmd = cmd_args.items[0];
+                    if (std.mem.eql(u8, cmd, "cd")) {
+                        if (cmd_args.items.len > 1) {
+                            std.posix.chdir(cmd_args.items[1]) catch |err| {
+                                try stdout.print("Gagal pindah direktori: {any}\n", .{err});
+                                try bw.flush();
+                            };
+                        } else {
+                            try stdout.print("Penggunaan: cd <direktori>\n", .{});
+                            try bw.flush();
+                        }
+                    } else if (std.mem.eql(u8, cmd, "exit")) {
+                        break;
+                    } else if (std.mem.eql(u8, cmd, "clear")) {
+                        try stdout.print("\x1B[2J\x1B[H", .{});
                         try bw.flush();
-                    };
+                    } else {
+                        executeCommand(allocator, cmd_args.items) catch |err| {
+                            try stdout.print("Gagal mengeksekusi perintah: {any}\n", .{err});
+                            try bw.flush();
+                        };
+                    }
                 }
             }
         } else {
