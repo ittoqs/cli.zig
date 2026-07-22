@@ -32,6 +32,20 @@ pub const CommandIterator = struct {
     }
 };
 
+pub fn executeCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
+    if (args.len == 0) return;
+
+    var child = std.process.Child.init(args, allocator);
+    // Membaca Environment Variables (PATH) dari OS
+    child.expand_arg0 = .expand;
+    // Mengaitkan dengan PTY agar perintah interaktif dapat berjalan
+    child.stdin_behavior = .Inherit;
+    child.stdout_behavior = .Inherit;
+    child.stderr_behavior = .Inherit;
+
+    _ = try child.spawnAndWait();
+}
+
 // Fungsi untuk memproses argumen dan mencetak output, ini diekstrak agar mudah dites
 pub fn processArgs(args: []const []const u8, writer: anytype) !void {
     // args[0] selalu path eksekusi dari program itu sendiri.
@@ -72,11 +86,22 @@ pub fn main() !void {
         if (try stdin.readUntilDelimiterOrEof(&buffer, '\n')) |input_line| {
             // Berhasil membaca satu baris input
             const trimmed_input = std.mem.trimRight(u8, input_line, "\r");
-            var iter = CommandIterator{ .input = trimmed_input };
-            while (iter.next()) |token| {
-                try stdout.print("Token: '{s}'\n", .{token});
+            if (trimmed_input.len > 0) {
+                var iter = CommandIterator{ .input = trimmed_input };
+                var cmd_args = std.ArrayList([]const u8).init(allocator);
+                defer cmd_args.deinit();
+
+                while (iter.next()) |token| {
+                    try cmd_args.append(token);
+                }
+
+                if (cmd_args.items.len > 0) {
+                    executeCommand(allocator, cmd_args.items) catch |err| {
+                        try stdout.print("Gagal mengeksekusi perintah: {any}\n", .{err});
+                        try bw.flush();
+                    };
+                }
             }
-            try bw.flush();
         } else {
             // End of File (EOF)
             break;
