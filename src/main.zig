@@ -56,7 +56,7 @@ pub fn main() !void {
         // Reset memori arena setiap siklus IO
         _ = arena.reset(.retain_capacity);
 
-        try stdout.print("cli-zig> ", .{});
+        try stdout.print("zigman> ", .{});
         try bw.flush();
 
         if (try stdin.readUntilDelimiterOrEof(&buffer, '\n')) |input_line| {
