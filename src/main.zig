@@ -55,10 +55,17 @@ pub fn main() !void {
     const stdout = bw.writer();
 
     if (args.len > 1) {
-        if (env.changeDirectory(args[1])) {
+        const expanded_path = try env.expandTilde(allocator, args[1]);
+        defer {
+            if (expanded_path.ptr != args[1].ptr) {
+                allocator.free(expanded_path);
+            }
+        }
+
+        if (env.changeDirectory(expanded_path)) {
             try ui.processArgs(args, stdout);
         } else |err| {
-            try stdout.print("Gagal pindah ke direktori '{s}': {s}\n", .{args[1], translateError(err)});
+            try stdout.print("Gagal pindah ke direktori '{s}': {s}\n", .{expanded_path, translateError(err)});
         }
     } else {
         try ui.processArgs(args, stdout);
@@ -96,7 +103,8 @@ pub fn main() !void {
                     const cmd = cmd_args.items[0];
                     if (std.mem.eql(u8, cmd, "cd")) {
                         if (cmd_args.items.len > 1) {
-                            env.changeDirectory(cmd_args.items[1]) catch |err| {
+                            const expanded_dir = try env.expandTilde(arena_alloc, cmd_args.items[1]);
+                            env.changeDirectory(expanded_dir) catch |err| {
                                 try stdout.print("Gagal pindah direktori: {s}\n", .{translateError(err)});
                                 try bw.flush();
                             };
