@@ -4,6 +4,27 @@ const executor = @import("executor.zig");
 const ui = @import("ui.zig");
 const env = @import("env.zig");
 
+fn translateError(err: anyerror) []const u8 {
+    return switch (err) {
+        error.FileNotFound => "Perintah atau file tidak ditemukan.",
+        error.AccessDenied => "Akses ditolak.",
+        error.NotDir => "Bukan sebuah direktori.",
+        error.OutOfMemory => "Kehabisan memori.",
+        error.InvalidWtf8 => "Terdapat karakter tidak valid.",
+        error.ProcessNotFound => "Proses tidak ditemukan.",
+        error.StreamTooLong => "Stream terlalu panjang.",
+        error.SystemResources => "Sumber daya sistem tidak mencukupi.",
+        error.SymLinkLoop => "Terlalu banyak symbolic link.",
+        error.NameTooLong => "Nama file terlalu panjang.",
+        error.NoSpaceLeft => "Tidak ada ruang tersisa di penyimpanan.",
+        error.DiskQuota => "Kuota disk penuh.",
+        error.FileBusy => "File sedang digunakan.",
+        error.InvalidExe => "File eksekusi tidak valid.",
+        error.Unexpected => "Kesalahan yang tidak terduga.",
+        else => @errorName(err),
+    };
+}
+
 fn sigintHandler(sig: i32) callconv(.C) void {
     _ = sig;
 }
@@ -37,7 +58,7 @@ pub fn main() !void {
         if (env.changeDirectory(args[1])) {
             try ui.processArgs(args, stdout);
         } else |err| {
-            try stdout.print("Gagal pindah ke direktori '{s}': {any}\n", .{args[1], err});
+            try stdout.print("Gagal pindah ke direktori '{s}': {s}\n", .{args[1], translateError(err)});
         }
     } else {
         try ui.processArgs(args, stdout);
@@ -76,7 +97,7 @@ pub fn main() !void {
                     if (std.mem.eql(u8, cmd, "cd")) {
                         if (cmd_args.items.len > 1) {
                             env.changeDirectory(cmd_args.items[1]) catch |err| {
-                                try stdout.print("Gagal pindah direktori: {any}\n", .{err});
+                                try stdout.print("Gagal pindah direktori: {s}\n", .{translateError(err)});
                                 try bw.flush();
                             };
                         } else {
@@ -91,13 +112,13 @@ pub fn main() !void {
                     } else {
                         // Parse as pipeline
                         const pipeline = parser.parsePipeline(arena_alloc, cmd_args.items) catch |err| {
-                            try stdout.print("Gagal parsing perintah: {any}\n", .{err});
+                            try stdout.print("Gagal parsing perintah: {s}\n", .{translateError(err)});
                             try bw.flush();
                             continue;
                         };
 
                         executor.executePipeline(arena_alloc, pipeline) catch |err| {
-                            try stdout.print("Gagal mengeksekusi perintah: {any}\n", .{err});
+                            try stdout.print("Gagal mengeksekusi perintah: {s}\n", .{translateError(err)});
                             try bw.flush();
                         };
                     }
