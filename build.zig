@@ -10,6 +10,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe.linkLibC();
+    exe.addCSourceFile(.{
+        .file = b.path("src/linenoise.c"),
+        .flags = &[_][]const u8{"-DUSE_UTF8"},
+    });
+    exe.addIncludePath(b.path("src"));
 
     b.installArtifact(exe);
 
@@ -28,6 +34,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe_unit_tests.linkLibC();
+    exe_unit_tests.addCSourceFile(.{
+        .file = b.path("src/linenoise.c"),
+        .flags = &[_][]const u8{"-DUSE_UTF8"},
+    });
+    exe_unit_tests.addIncludePath(b.path("src"));
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
