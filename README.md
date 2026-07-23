@@ -1,6 +1,6 @@
 # ⚡ zigman
 
-> Aplikasi *Command Line* sederhana, cepat, dan ringan.
+> *Command Line* sederhana, cepat, dan ringan.
 
 ---
 
