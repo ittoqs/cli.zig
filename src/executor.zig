@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const parser = @import("parser.zig");
+const env = @import("env.zig");
 
 fn pump(in: std.fs.File, out: std.fs.File, close_out: bool) void {
     var buf: [4096]u8 = undefined;
@@ -52,6 +53,18 @@ pub fn executePipeline(allocator: std.mem.Allocator, pipeline: std.ArrayList(par
     }
 
     if (valid_segments.items.len == 0) return;
+
+    for (valid_segments.items) |*segment| {
+        for (segment.args.items, 0..) |arg, arg_i| {
+            segment.args.items[arg_i] = try env.expandTilde(allocator, arg);
+        }
+        if (segment.input_redirection) |in| {
+            segment.input_redirection = try env.expandTilde(allocator, in);
+        }
+        if (segment.output_redirection) |out| {
+            segment.output_redirection = try env.expandTilde(allocator, out);
+        }
+    }
 
     // Initialize children
     for (valid_segments.items, 0..) |segment, i| {
